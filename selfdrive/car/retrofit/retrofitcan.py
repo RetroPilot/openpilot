@@ -1,3 +1,11 @@
+def toyota_checksum(addr, dat, len):
+  cksum = 0
+  for i in dat:
+    cksum += i
+  cksum += (addr & 0xFF) + (addr >> 8) + len
+  cksum = cksum & 0xFF
+  return cksum
+
 def create_toyota_steer_command(packer, steer, steer_req):
 # creates a toyota LKA steer command for retrofit Corolla EPS
   values = {
@@ -5,6 +13,15 @@ def create_toyota_steer_command(packer, steer, steer_req):
     "STEER_TORQUE_CMD": steer,
     "SET_ME_1": 1,
   }
+
+  # must manually create the can structure again for checksum on ocelot
+  dat1 = (values["STEER_REQUEST"] & 1) | ((values["TOYOTA_COUNTER"] << 1) & 0x3F) | ((values["SET_ME_1"] << 7) & 1)
+  dat2 = (values["STEER_TORQUE_CMD"] >> 8) & 0xFF
+  dat3 = (values["STEER_TORQUE_CMD"]) & 0xFF
+  dat = [dat1,dat2,dat3]
+
+  values["TOYOTA_CHECKSUM"] = toyota_checksum(0x2E4, dat, 5)
+
   return packer.make_can_msg("STEERING_LKA", 0, values)
 
 def create_steer_command(packer, steer, mode, raw_cnt):

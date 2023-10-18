@@ -63,6 +63,8 @@ CAR_INFO: Dict[str, Union[ToyotaCarInfo, List[ToyotaCarInfo]]] = {
   ],
 }
 
+EPS_SCALE = defaultdict(lambda: 73, {CAR.RSG_OFFROAD: 88})
+
 # (addr, cars, bus, 1/freq*100, vl)
 STATIC_DSU_MSGS = [
   (0x128, (CAR.RSG_OFFROAD), 1,   3, b'\xf4\x01\x90\x83\x00\x37'),

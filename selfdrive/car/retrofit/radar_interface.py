@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 from opendbc.can.parser import CANParser
 from cereal import car
-from openpilot.selfdrive.car.toyota.values import DBC, TSS2_CAR
+from openpilot.selfdrive.car.retrofit.values import DBC
 from openpilot.selfdrive.car.interfaces import RadarInterfaceBase
 
 
 def _create_radar_can_parser(car_fingerprint):
-  if car_fingerprint in TSS2_CAR:
-    RADAR_A_MSGS = list(range(0x180, 0x190))
-    RADAR_B_MSGS = list(range(0x190, 0x1a0))
-  else:
-    RADAR_A_MSGS = list(range(0x210, 0x220))
-    RADAR_B_MSGS = list(range(0x220, 0x230))
+  RADAR_A_MSGS = list(range(0x180, 0x190))
+  RADAR_B_MSGS = list(range(0x190, 0x1a0))
 
   msg_a_n = len(RADAR_A_MSGS)
   msg_b_n = len(RADAR_B_MSGS)

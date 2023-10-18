@@ -122,25 +122,8 @@ class CarState(CarStateBase):
 
     cp_acc = cp
 
-    if self.CP.carFingerprint in TSS2_CAR and not self.CP.flags & ToyotaFlags.DISABLE_RADAR.value:
-      if not (self.CP.flags & ToyotaFlags.SMART_DSU.value):
-        self.acc_type = cp_acc.vl["ACC_CONTROL"]["ACC_TYPE"]
-      ret.stockFcw = bool(cp_acc.vl["PCS_HUD"]["FCW"])
-
-    # some TSS2 cars have low speed lockout permanently set, so ignore on those cars
-    # these cars are identified by an ACC_TYPE value of 2.
-    # TODO: it is possible to avoid the lockout and gain stop and go if you
-    # send your own ACC_CONTROL msg on startup with ACC_TYPE set to 1
-    if (self.CP.carFingerprint not in TSS2_CAR and self.CP.carFingerprint not in UNSUPPORTED_DSU_CAR) or \
-       (self.CP.carFingerprint in TSS2_CAR and self.acc_type == 1):
-      self.low_speed_lockout = cp.vl["PCM_CRUISE_2"]["LOW_SPEED_LOCKOUT"] == 2
-
     self.pcm_acc_status = cp.vl["PCM_CRUISE"]["CRUISE_STATE"]
-    if self.CP.carFingerprint not in (NO_STOP_TIMER_CAR - TSS2_CAR):
-      # ignore standstill state in certain vehicles, since pcm allows to restart with just an acceleration request
-      ret.cruiseState.standstill = self.pcm_acc_status == 7
     ret.cruiseState.enabled = bool(cp.vl["PCM_CRUISE"]["CRUISE_ACTIVE"])
-    ret.cruiseState.nonAdaptive = cp.vl["PCM_CRUISE"]["CRUISE_STATE"] in (1, 2, 3, 4, 5, 6)
 
     ret.genericToggle = bool(cp.vl["LIGHT_STALK"]["AUTO_HIGH_BEAM"])
     ret.espDisabled = cp.vl["ESP_CONTROL"]["TC_DISABLED"] != 0
@@ -175,12 +158,6 @@ class CarState(CarStateBase):
       ("STEER_TORQUE_SENSOR", 50),
     ]
 
-    if CP.carFingerprint in UNSUPPORTED_DSU_CAR:
-      messages.append(("DSU_CRUISE", 5))
-      messages.append(("PCM_CRUISE_ALT", 1))
-    else:
-      messages.append(("PCM_CRUISE_2", 33))
-
     # add gas interceptor reading if we are using it
     if CP.enableGasInterceptor:
       messages.append(("GAS_SENSOR", 50))
@@ -188,36 +165,11 @@ class CarState(CarStateBase):
     if CP.enableBsm:
       messages.append(("BSM", 1))
 
-    if CP.carFingerprint in RADAR_ACC_CAR and not CP.flags & ToyotaFlags.DISABLE_RADAR.value:
-      if not CP.flags & ToyotaFlags.SMART_DSU.value:
-        messages += [
-          ("ACC_CONTROL", 33),
-        ]
-      messages += [
-        ("PCS_HUD", 1),
-      ]
-
-    if CP.carFingerprint not in (TSS2_CAR - RADAR_ACC_CAR) and not CP.enableDsu and not CP.flags & ToyotaFlags.DISABLE_RADAR.value:
-      messages += [
-        ("PRE_COLLISION", 33),
-      ]
-
     return CANParser(DBC[CP.carFingerprint]["pt"], messages, 0)
 
   @staticmethod
-  def get_cam_can_parser(CP):
-    messages = []
+  def get_adas_can_parser(CP):
+    messages = [("LKAS_HUD", 1),]
 
-    if CP.carFingerprint != CAR.PRIUS_V:
-      messages += [
-        ("LKAS_HUD", 1),
-      ]
-
-    if CP.carFingerprint in (TSS2_CAR - RADAR_ACC_CAR):
-      messages += [
-        ("PRE_COLLISION", 33),
-        ("ACC_CONTROL", 33),
-        ("PCS_HUD", 1),
-      ]
 
     return CANParser(DBC[CP.carFingerprint]["pt"], messages, 2)
